@@ -1,0 +1,2 @@
+[console_scripts]
+termichat = app.main:main

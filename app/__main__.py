@@ -1,2 +1,2 @@
-from main import main
+from app.main import main
 main()

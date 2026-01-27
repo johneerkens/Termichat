@@ -1,5 +1,5 @@
 import requests
-from config import API_KEY
+from app.config import API_KEY
 
 API_URL = "https://api.openai.com/v1/chat/completions"
 MODEL = "gpt-4o-mini"  # fast, cheap, great for terminal use

@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+app/__init__.py
+app/__main__.py
+app/chat.py
+app/config.py
+app/main.py
+app/ui.py
+termichat.egg-info/PKG-INFO
+termichat.egg-info/SOURCES.txt
+termichat.egg-info/dependency_links.txt
+termichat.egg-info/entry_points.txt
+termichat.egg-info/requires.txt
+termichat.egg-info/top_level.txt
