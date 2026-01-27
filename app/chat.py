@@ -1,7 +1,12 @@
 import requests
-from config import API_KEY, API_URL
+from config import API_KEY
+
+API_URL = "https://api.openai.com/v1/chat/completions"
+MODEL = "gpt-4o-mini"  # fast, cheap, great for terminal use
 
 def start_chat():
+    print("Connected to OpenAI ✅\n")
+
     while True:
         user_input = input("You > ")
 
@@ -9,18 +14,36 @@ def start_chat():
             print("Goodbye 👋")
             break
 
-        response = requests.post(
-            API_URL,
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "message": user_input
-            }
-        )
+        payload = {
+            "model": MODEL,
+            "messages": [
+                {"role": "system", "content": "You are a helpful AI assistant in a Linux terminal."},
+                {"role": "user", "content": user_input}
+            ],
+            "temperature": 0.7
+        }
 
-        if response.status_code == 200:
-            print("AI  >", response.json().get("reply", "No response"))
-        else:
-            print("⚠️  Error communicating with AI API")
+        try:
+            response = requests.post(
+                API_URL,
+                headers={
+                    "Authorization": f"Bearer {API_KEY}",
+                    "Content-Type": "application/json"
+                },
+                json=payload,
+                timeout=30
+            )
+
+            response.raise_for_status()
+
+            data = response.json()
+            reply = data["choices"][0]["message"]["content"]
+
+            print(f"AI  > {reply}\n")
+
+        except requests.exceptions.HTTPError as e:
+            print("❌ OpenAI API error")
+            print(response.text)
+
+        except requests.exceptions.RequestException:
+            print("❌ Network error. Check your connection.")
