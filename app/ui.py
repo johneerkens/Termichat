@@ -57,3 +57,22 @@ def thinking():
         spinner="dots"
     ):
         yield
+
+def ai_response(text: str):
+    md = Markdown(text)
+    lines = text.count("\n") + 1
+
+    if lines >= SCROLL_THRESHOLD:
+        # use pager for long output
+        with console.pager():
+            console.print(md)
+
+    else:
+        # normal panel for short output
+        console.print(
+            Panel(
+                md,
+                title="[bold magenta]AI[/bold magenta]",
+                border_style="magenta"
+            )
+        )
