@@ -6,6 +6,9 @@ from contextlib import contextmanager
 
 console = Console()
 
+# ✅ ADD THIS LINE (or make sure it exists)
+SCROLL_THRESHOLD = 20 # number of lines before pager is used
+
 def print_header():
     console.print(
         Panel.fit(
@@ -19,13 +22,22 @@ def user_input():
 
 def ai_response(text: str):
     md = Markdown(text)
-    console.print(
-        Panel(
-            md,
-            title="[bold magenta]AI[/bold magenta]",
-            border_style="magenta"
+    lines = text.count("\n") + 1
+
+    if lines >= SCROLL_THRESHOLD:
+        # use pager for long output
+        with console.pager():
+            console.print(md)
+
+    else:
+        # normal panel for short output
+        console.print(
+            Panel(
+                md,
+                title="[bold magenta]AI[/bold magenta]",
+                border_style="magenta"
+            )
         )
-    )
 
 def info(message: str):
     console.print(f"[dim]{message}[/dim]")
@@ -57,22 +69,3 @@ def thinking():
         spinner="dots"
     ):
         yield
-
-def ai_response(text: str):
-    md = Markdown(text)
-    lines = text.count("\n") + 1
-
-    if lines >= SCROLL_THRESHOLD:
-        # use pager for long output
-        with console.pager():
-            console.print(md)
-
-    else:
-        # normal panel for short output
-        console.print(
-            Panel(
-                md,
-                title="[bold magenta]AI[/bold magenta]",
-                border_style="magenta"
-            )
-        )
