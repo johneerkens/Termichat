@@ -49,3 +49,11 @@ def show_help():
             border_style="cyan"
         )
     )
+
+@contextmanager
+def thinking():
+    with console.status(
+        "[bold magenta]AI is thinking…[/bold magenta]",
+        spinner="dots"
+    ):
+        yield
