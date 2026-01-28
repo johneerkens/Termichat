@@ -3,6 +3,8 @@ from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.prompt import Prompt
 from contextlib import contextmanager
+from prompt_toolkit import PromptSession
+from prompt_toolkit.history import InMemoryHistory
 
 console = Console()
 
@@ -17,8 +19,16 @@ def print_header():
         )
     )
 
+# Prompt session with history & arrow-key support
+_session = PromptSession(
+    history=InMemoryHistory(),
+)
+
 def user_input():
-    return Prompt.ask("[bold green]You[/bold green]")
+    return _session.prompt(
+        "You: ",
+        multiline=False
+    )
 
 def ai_response(text: str):
     md = Markdown(text)
