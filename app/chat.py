@@ -109,7 +109,7 @@ def start_chat():
 
                         # Stream final text output
                         for item in event.get("output", []):
-                            if item.get("type") == "output_text":
+                            if item.get("type") in ("output_text", "summary_text"):
                                 yield item.get("text")
 
                     except Exception:
