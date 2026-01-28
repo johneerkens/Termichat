@@ -2,6 +2,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.prompt import Prompt
+from contextlib import contextmanager
 
 console = Console()
 
