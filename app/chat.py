@@ -1,6 +1,6 @@
 import requests
 from app.config import API_KEY
-from app.ui import user_input, ai_response, info, error
+from app.ui import user_input, ai_response, info, error, show_help
 
 API_URL = "https://api.openai.com/v1/chat/completions"
 MODEL = "gpt-4o-mini"
@@ -27,10 +27,14 @@ def start_chat():
         if user_text.lower() in ("exit", "quit"):
             info("Goodbye 👋")
             break
-
+ 
         if user_text.lower() == "/clear":
             messages = [SYSTEM_PROMPT.copy()]
             info("🧹 Conversation cleared.")
+            continue
+
+        if user_text.lower() == "/help":
+            show_help()
             continue
 
         # ---- NORMAL CHAT ----
