@@ -1,6 +1,7 @@
 import requests
+import json
 from app.config import API_KEY
-from app.ui import user_input, ai_response, info, error, show_help, thinking
+from app.ui import user_input, ai_response, info, error, show_help, thinking, stream_ai_response
 
 API_URL = "https://api.openai.com/v1/chat/completions"
 MODEL = "gpt-4o-mini"
@@ -37,40 +38,59 @@ def start_chat():
             show_help()
             continue
 
-        # ---- NORMAL CHAT ----
-        messages.append({"role": "user", "content": user_text})
+# ---- NORMAL CHAT ----
+messages.append({"role": "user", "content": user_text})
 
-        if len(messages) > 1 + MAX_HISTORY * 2:
-            messages = [messages[0]] + messages[-MAX_HISTORY * 2 :]
+if len(messages) > 1 + MAX_HISTORY * 2:
+    messages = [messages[0]] + messages[-MAX_HISTORY * 2 :]
 
-        payload = {
-            "model": MODEL,
-            "messages": messages,
-            "temperature": 0.7
-        }
+payload = {
+    "model": MODEL,
+    "messages": messages,
+    "temperature": 0.7
+}
 
-        try:
-            with thinking():
-                response = requests.post(
-                    API_URL,
-                    headers={
-                        "Authorization": f"Bearer {API_KEY}",
-                        "Content-Type": "application/json"
-                    },
-                    json=payload,
-                    timeout=30
-                )
-                response.raise_for_status()
+try:
+    response = requests.post(
+        API_URL,
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
+        },
+        json={**payload, "stream": True},
+        stream=True,
+        timeout=30
+    )
+    response.raise_for_status()
 
-                reply = response.json()["choices"][0]["message"]["content"]
-                messages.append({"role": "assistant", "content": reply})
+    def stream_chunks():
+        for line in response.iter_lines():
+            if not line:
+                continue
 
-                ai_response(reply)
+            if line.startswith(b"data: "):
+                data = line[len(b"data: "):]
 
-        except requests.exceptions.HTTPError:
-            error("OpenAI API error")
-            error(response.text)
+                if data == b"[DONE]":
+                    break
 
-        except requests.exceptions.RequestException:
-            error("Network error — check your connection.")
+                try:
+                    chunk = json.loads(data.decode("utf-8"))
+                    delta = chunk["choices"][0]["delta"]
+                    if "content" in delta:
+                        yield delta["content"]
+                except Exception:
+                    continue
+
+    reply = stream_ai_response(stream_chunks())
+
+    messages.append({"role": "assistant", "content": reply})
+
+except requests.exceptions.HTTPError:
+    error("OpenAI API error")
+    error(response.text)
+
+except requests.exceptions.RequestException:
+    error("Network error — check your connection.")
+
 

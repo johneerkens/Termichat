@@ -30,6 +30,23 @@ def user_input():
         multiline=False
     )
 
+def stream_ai_response(chunks):
+    """
+    Stream tokens to the terminal as they arrive.
+    Returns the full combined response text.
+    """
+    full_text = ""
+
+    console.print("[bold magenta]AI[/bold magenta] ", end="")
+
+    for chunk in chunks:
+        text = chunk
+        full_text += text
+        console.print(text, end="", soft_wrap=True)
+
+    console.print()  # newline at end
+    return full_text
+
 def ai_response(text: str):
     md = Markdown(text)
     lines = text.count("\n") + 1
