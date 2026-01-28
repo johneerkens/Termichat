@@ -31,3 +31,20 @@ def info(message: str):
 
 def error(message: str):
     console.print(f"[bold red]❌ {message}[/bold red]")
+
+from rich.panel import Panel
+
+def show_help():
+    help_text = (
+        "[bold]/help[/bold]  Show this help message\n"
+        "[bold]/clear[/bold] Clear the conversation history\n"
+        "[bold]exit[/bold]   Exit Termichat\n"
+    )
+
+    console.print(
+        Panel(
+            help_text,
+            title="[bold cyan]Available Commands[/bold cyan]",
+            border_style="cyan"
+        )
+    )
