@@ -4,25 +4,38 @@ import requests
 from app.config import API_KEY
 from app.ui import (
     user_input,
-    ai_response,
     info,
     error,
     show_help,
     stream_ai_response,
 )
 
-API_URL = "https://api.openai.com/v1/chat/completions"
+API_URL = "https://api.openai.com/v1/responses"
 MODEL = "gpt-4o-mini"
 MAX_HISTORY = 10
 
 SYSTEM_PROMPT = {
     "role": "system",
-    "content": "You are a helpful AI assistant running in a Linux terminal."
+    "content": (
+        "You are a helpful AI assistant running in a Linux terminal. "
+        "You are allowed to use web search tools when needed to answer "
+        "questions about current events, sports results, or recent news."
+    ),
 }
 
 
+def _to_responses_input(messages):
+    return [
+        {
+            "role": msg["role"],
+            "content": [{"type": "text", "text": msg["content"]}],
+        }
+        for msg in messages
+    ]
+
+
 def start_chat():
-    info("Connected to OpenAI ✅\n")
+    info("Connected to OpenAI (Responses API + Web Search) ✅\n")
 
     messages = [SYSTEM_PROMPT.copy()]
 
@@ -55,8 +68,11 @@ def start_chat():
 
         payload = {
             "model": MODEL,
-            "messages": messages,
-            "temperature": 0.7,
+            "input": _to_responses_input(messages),
+            "tools": [
+                {"type": "web_search"}
+            ],
+            "stream": True,
         }
 
         try:
@@ -66,7 +82,7 @@ def start_chat():
                     "Authorization": f"Bearer {API_KEY}",
                     "Content-Type": "application/json",
                 },
-                json={**payload, "stream": True},
+                json=payload,
                 stream=True,
                 timeout=30,
             )
@@ -77,19 +93,24 @@ def start_chat():
                     if not line:
                         continue
 
-                    if line.startswith(b"data: "):
-                        data = line[len(b"data: ") :]
+                    if not line.startswith(b"data: "):
+                        continue
 
-                        if data == b"[DONE]":
-                            break
+                    data = line[len(b"data: "):]
 
-                        try:
-                            event = json.loads(data.decode("utf-8"))
-                            delta = event["choices"][0]["delta"]
-                            if "content" in delta:
-                                yield delta["content"]
-                        except Exception:
-                            continue
+                    if data == b"[DONE]":
+                        break
+
+                    try:
+                        event = json.loads(data.decode("utf-8"))
+
+                        # Stream final text output
+                        for item in event.get("output", []):
+                            if item.get("type") == "output_text":
+                                yield item.get("text")
+
+                    except Exception:
+                        continue
 
             reply = stream_ai_response(stream_chunks())
             messages.append({"role": "assistant", "content": reply})
