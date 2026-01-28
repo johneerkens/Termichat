@@ -1,6 +1,6 @@
 import requests
 from app.config import API_KEY
-from app.ui import user_input, ai_response, info, error, show_help
+from app.ui import user_input, ai_response, info, error, show_help, thinking
 
 API_URL = "https://api.openai.com/v1/chat/completions"
 MODEL = "gpt-4o-mini"
@@ -50,16 +50,18 @@ def start_chat():
         }
 
         try:
-            response = requests.post(
-                API_URL,
-                headers={
-                    "Authorization": f"Bearer {API_KEY}",
-                    "Content-Type": "application/json"
-                },
-                json=payload,
-                timeout=30
-            )
-            response.raise_for_status()
+            with thinking():
+                 response = requests.post(
+                      API_URL,
+                      headers={
+                           "Authorization": f"Bearer {API_KEY}",
+                           "Content-Type": "application/json"
+                           },
+                           json=payload,
+                           timeout=30
+                        )
+                 response.raise_for_status()
+
 
             reply = response.json()["choices"][0]["message"]["content"]
             messages.append({"role": "assistant", "content": reply})
