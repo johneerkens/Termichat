@@ -1,25 +1,40 @@
 import requests
 from app.config import API_KEY
+from app.ui import user_input, ai_response, info, error
 
 API_URL = "https://api.openai.com/v1/chat/completions"
-MODEL = "gpt-4o-mini"  # fast, cheap, great for terminal use
+MODEL = "gpt-4o-mini"
+MAX_HISTORY = 10
 
 def start_chat():
-    print("Connected to OpenAI ✅\n")
+    info("Connected to OpenAI ✅\n")
+
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a helpful AI assistant running in a Linux terminal."
+        }
+    ]
 
     while True:
-        user_input = input("You > ")
-
-        if user_input.lower() in ("exit", "quit"):
-            print("Goodbye 👋")
+        try:
+            user_text = user_input().strip()
+        except (KeyboardInterrupt, EOFError):
+            info("\nGoodbye 👋")
             break
+
+        if user_text.lower() in ("exit", "quit"):
+            info("Goodbye 👋")
+            break
+
+        messages.append({"role": "user", "content": user_text})
+
+        if len(messages) > 1 + MAX_HISTORY * 2:
+            messages = [messages[0]] + messages[-MAX_HISTORY * 2 :]
 
         payload = {
             "model": MODEL,
-            "messages": [
-                {"role": "system", "content": "You are a helpful AI assistant in a Linux terminal."},
-                {"role": "user", "content": user_input}
-            ],
+            "messages": messages,
             "temperature": 0.7
         }
 
@@ -33,17 +48,16 @@ def start_chat():
                 json=payload,
                 timeout=30
             )
-
             response.raise_for_status()
 
-            data = response.json()
-            reply = data["choices"][0]["message"]["content"]
+            reply = response.json()["choices"][0]["message"]["content"]
+            messages.append({"role": "assistant", "content": reply})
 
-            print(f"AI  > {reply}\n")
+            ai_response(reply)
 
-        except requests.exceptions.HTTPError as e:
-            print("❌ OpenAI API error")
-            print(response.text)
+        except requests.exceptions.HTTPError:
+            error("OpenAI API error")
+            error(response.text)
 
         except requests.exceptions.RequestException:
-            print("❌ Network error. Check your connection.")
+            error("Network error — check your connection.")
