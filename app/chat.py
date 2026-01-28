@@ -51,22 +51,21 @@ def start_chat():
 
         try:
             with thinking():
-                 response = requests.post(
-                      API_URL,
-                      headers={
-                           "Authorization": f"Bearer {API_KEY}",
-                           "Content-Type": "application/json"
-                           },
-                           json=payload,
-                           timeout=30
-                        )
-                 response.raise_for_status()
+                response = requests.post(
+                    API_URL,
+                    headers={
+                        "Authorization": f"Bearer {API_KEY}",
+                        "Content-Type": "application/json"
+                    },
+                    json=payload,
+                    timeout=30
+                )
+                response.raise_for_status()
 
+                reply = response.json()["choices"][0]["message"]["content"]
+                messages.append({"role": "assistant", "content": reply})
 
-            reply = response.json()["choices"][0]["message"]["content"]
-            messages.append({"role": "assistant", "content": reply})
-
-            ai_response(reply)
+                ai_response(reply)
 
         except requests.exceptions.HTTPError:
             error("OpenAI API error")
