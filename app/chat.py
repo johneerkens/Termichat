@@ -23,16 +23,19 @@ SYSTEM_PROMPT = {
     ),
 }
 
-
 def _to_responses_input(messages):
     return [
         {
             "role": msg["role"],
-            "content": [{"type": "text", "text": msg["content"]}],
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": msg["content"]
+                }
+            ],
         }
         for msg in messages
     ]
-
 
 def start_chat():
     info("Connected to OpenAI (Responses API + Web Search) ✅\n")
