@@ -1,13 +1,12 @@
-import json
 import requests
 
 from app.config import API_KEY
 from app.ui import (
     user_input,
+    ai_response,
     info,
     error,
     show_help,
-    stream_ai_response,
 )
 
 API_URL = "https://api.openai.com/v1/responses"
@@ -23,23 +22,29 @@ SYSTEM_PROMPT = {
     ),
 }
 
+
 def _to_responses_input(messages):
+    """
+    Convert internal message format to Responses API input format.
+    """
     return [
         {
             "role": msg["role"],
             "content": [
                 {
                     "type": "input_text",
-                    "text": msg["content"]
+                    "text": msg["content"],
                 }
             ],
         }
         for msg in messages
     ]
 
+
 def start_chat():
     info("Connected to OpenAI (Responses API + Web Search) ✅\n")
 
+    # Conversation memory
     messages = [SYSTEM_PROMPT.copy()]
 
     while True:
@@ -66,6 +71,7 @@ def start_chat():
         # ---- NORMAL CHAT ----
         messages.append({"role": "user", "content": user_text})
 
+        # Trim history (keep system + last N turns)
         if len(messages) > 1 + MAX_HISTORY * 2:
             messages = [messages[0]] + messages[-MAX_HISTORY * 2 :]
 
@@ -75,7 +81,7 @@ def start_chat():
             "tools": [
                 {"type": "web_search"}
             ],
-            "stream": True,
+            "stream": False,  # 🔴 DISABLED ON PURPOSE (STABILITY)
         }
 
         try:
@@ -86,53 +92,28 @@ def start_chat():
                     "Content-Type": "application/json",
                 },
                 json=payload,
-                stream=True,
                 timeout=30,
             )
             response.raise_for_status()
 
-            def stream_chunks():
-                for line in response.iter_lines():
-                    if not line:
-                        continue
+            data = response.json()
 
-                    if not line.startswith(b"data: "):
-                        continue
+            # ---- Extract assistant text (official & stable) ----
+            reply_parts = []
 
-                    data = line[len(b"data: "):]
+            for item in data.get("output", []):
+                if item.get("role") == "assistant":
+                    for content in item.get("content", []):
+                        if content.get("type") in ("output_text", "summary_text"):
+                            reply_parts.append(content.get("text", ""))
 
-                    if data == b"[DONE]":
-                        break
+            reply = "\n".join(reply_parts).strip()
 
-                    try:
-                        event = json.loads(data.decode("utf-8"))
-
-                        # Stream final text output
-                        for item in event.get("output", []):
-                            if item.get("type") in ("output_text", "summary_text"):
-                                yield item.get("text")
-
-                    except Exception:
-                        continue
-
-            reply = stream_ai_response(stream_chunks())
-            
-            # 🔁 Fallback: no streamed output → extract final structured response
-            if not reply.strip():
-                try:
-                    final_json = response.json()
-                    collected = []
-
-                    for item in final_json.get("output", []):
-                        for content in item.get("content", []):
-                            if content.get("type") in ("output_text", "summary_text"):
-                                collected.append(content.get("text", ""))
-
-                    reply = "\n".join(collected).strip()
-
-                except Exception:
-                    reply = ""
-                  
+            if reply:
+                ai_response(reply)
+                messages.append({"role": "assistant", "content": reply})
+            else:
+                error("⚠️ The model returned no visible text.")
 
         except requests.exceptions.HTTPError:
             error("OpenAI API error")
@@ -140,3 +121,4 @@ def start_chat():
 
         except requests.exceptions.RequestException:
             error("Network error — check your connection.")
+
