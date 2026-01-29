@@ -4,6 +4,7 @@ app/__init__.py
 app/__main__.py
 app/chat.py
 app/config.py
+app/doctor.py
 app/main.py
 app/ui.py
 termichat.egg-info/PKG-INFO
