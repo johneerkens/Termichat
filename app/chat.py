@@ -1,5 +1,6 @@
 import requests
 
+from app.doctor import run_doctor
 from app.config import API_KEY
 from app.ui import (
     user_input,
@@ -66,6 +67,10 @@ def start_chat():
 
         if user_text.lower() == "/help":
             show_help()
+            continue
+
+        if user_text.lower() == "/doctor":
+            run_doctor()
             continue
 
         # ---- NORMAL CHAT ----
