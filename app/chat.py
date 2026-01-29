@@ -26,21 +26,26 @@ SYSTEM_PROMPT = {
 
 def _to_responses_input(messages):
     """
-    Convert internal message format to Responses API input format.
+    Responses API input MUST NOT include assistant messages.
+    Only system + user messages are allowed.
     """
-    return [
-        {
-            "role": msg["role"],
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": msg["content"],
-                }
-            ],
-        }
-        for msg in messages
-    ]
+    converted = []
 
+    for msg in messages:
+        if msg["role"] in ("system", "user"):
+            converted.append(
+                {
+                    "role": msg["role"],
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": msg["content"],
+                        }
+                    ],
+                }
+            )
+
+    return converted
 
 def start_chat():
     info("Connected to OpenAI (Responses API + Web Search) ✅\n")
