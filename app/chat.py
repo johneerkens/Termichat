@@ -116,7 +116,23 @@ def start_chat():
                         continue
 
             reply = stream_ai_response(stream_chunks())
-            messages.append({"role": "assistant", "content": reply})
+            
+            # 🔁 Fallback: no streamed output → extract final structured response
+            if not reply.strip():
+                try:
+                    final_json = response.json()
+                    collected = []
+
+                    for item in final_json.get("output", []):
+                        for content in item.get("content", []):
+                            if content.get("type") in ("output_text", "summary_text"):
+                                collected.append(content.get("text", ""))
+
+                    reply = "\n".join(collected).strip()
+
+                except Exception:
+                    reply = ""
+                  
 
         except requests.exceptions.HTTPError:
             error("OpenAI API error")
