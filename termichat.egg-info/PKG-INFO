@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: termichat
-Version: 0.2.0
+Version: 0.2.2
 Summary: Linux-native terminal AI chat client
 Author: John Eerkens
 Requires-Python: >=3.8
