@@ -1,13 +1,15 @@
+import json
 import requests
 
 from app.doctor import run_doctor
 from app.config import API_KEY
 from app.ui import (
     user_input,
-    ai_response,
     info,
     error,
     show_help,
+    stream_ai_response,
+    typing_indicator,
 )
 
 API_URL = "https://api.openai.com/v1/responses"
@@ -46,6 +48,36 @@ def _to_responses_input(messages):
             )
 
     return converted
+
+def _iter_response_text(response):
+    for line in response.iter_lines(decode_unicode=True):
+        if not line:
+            continue
+
+        if line.startswith("data: "):
+            data = line[len("data: ") :].strip()
+        else:
+            continue
+
+        if data == "[DONE]":
+            break
+
+        try:
+            event = json.loads(data)
+        except json.JSONDecodeError:
+            continue
+
+        # Responses API streaming deltas
+        if isinstance(event, dict):
+            if isinstance(event.get("delta"), str):
+                yield event["delta"]
+                continue
+
+            event_type = event.get("type", "")
+            if event_type.endswith(".delta"):
+                if isinstance(event.get("text"), str):
+                    yield event["text"]
+                    continue
 
 def start_chat():
     info("Connected to OpenAI (Responses API + Web Search) ✅\n")
@@ -91,7 +123,7 @@ def start_chat():
             "tools": [
                 {"type": "web_search"}
             ],
-            "stream": False,  # 🔴 DISABLED ON PURPOSE (STABILITY)
+            "stream": True,
         }
 
         try:
@@ -102,25 +134,21 @@ def start_chat():
                     "Content-Type": "application/json",
                 },
                 json=payload,
-                timeout=30,
+                stream=True,
+                timeout=60,
             )
             response.raise_for_status()
 
-            data = response.json()
-
-            # ---- Extract assistant text (official & stable) ----
-            reply_parts = []
-
-            for item in data.get("output", []):
-                if item.get("role") == "assistant":
-                    for content in item.get("content", []):
-                        if content.get("type") in ("output_text", "summary_text"):
-                            reply_parts.append(content.get("text", ""))
-
-            reply = "\n".join(reply_parts).strip()
+            status = typing_indicator()
+            try:
+                reply = stream_ai_response(
+                    _iter_response_text(response),
+                    on_first_chunk=status.stop,
+                ).strip()
+            finally:
+                status.stop()
 
             if reply:
-                ai_response(reply)
                 messages.append({"role": "assistant", "content": reply})
             else:
                 error("⚠️ The model returned no visible text.")
@@ -131,4 +159,3 @@ def start_chat():
 
         except requests.exceptions.RequestException:
             error("Network error — check your connection.")
-

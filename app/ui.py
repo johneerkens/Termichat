@@ -30,21 +30,27 @@ def user_input():
         multiline=False
     )
 
-def stream_ai_response(chunks):
+def stream_ai_response(chunks, on_first_chunk=None):
     """
     Stream tokens to the terminal as they arrive.
     Returns the full combined response text.
     """
     full_text = ""
-
-    console.print("[bold magenta]AI[/bold magenta] ", end="")
+    started = False
 
     for chunk in chunks:
+        if not started:
+            if on_first_chunk:
+                on_first_chunk()
+            console.print("[bold magenta]AI[/bold magenta] ", end="")
+            started = True
+
         text = chunk
         full_text += text
         console.print(text, end="", soft_wrap=True)
 
-    console.print()  # newline at end
+    if started:
+        console.print()  # newline at end
     return full_text
 
 def ai_response(text: str):
@@ -88,6 +94,14 @@ def show_help():
             border_style="cyan"
         )
     )
+
+def typing_indicator():
+    status = console.status(
+        "[bold magenta]AI is typing…[/bold magenta]",
+        spinner="dots",
+    )
+    status.start()
+    return status
 
 @contextmanager
 def thinking():
