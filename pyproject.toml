@@ -17,3 +17,6 @@ dependencies = [
 
 [project.scripts]
 termichat = "app.main:main"
+
+[tool.setuptools]
+packages = ["app"]
